@@ -9,7 +9,7 @@ module Scratch.LinearRegression
   ) where
 
 import qualified Data.Vector as V 
-import Data.List (foldl')
+import           Data.List (foldl')
 
 -- [(inputs),target]
 type Dataset = V.Vector (V.Vector Double, Double)
