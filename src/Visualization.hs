@@ -1,65 +1,134 @@
 module Visualization
   ( Plot(..)
+  , scatterDataset
+  , regressionLine
+  , mseCurve
   , renderASCII
-  , scatterPoints
-  , linePoints
-  , msePoints
   ) where
 
 import qualified Data.Vector as V
 import Scratch.LinearRegression
 
--- Simple plot types
+------------------------------------------------------------
+-- Plot types
+------------------------------------------------------------
+
 data Plot
   = Scatter [(Double, Double)]
-  | Line [(Double, Double)]
+  | Line    [(Double, Double)]
   deriving (Show)
 
--- Convert your dataset (V.Vector of Vectors) to scatter points (1D only)
-scatterPoints :: V.Vector (V.Vector Double, Double) -> [(Double, Double)]
-scatterPoints dataset =
-  [ (x V.! 0, y) | (x, y) <- V.toList dataset ]
+------------------------------------------------------------
+-- Dataset → Scatter plot
+------------------------------------------------------------
 
--- Convert your model to a line for plotting
-linePoints :: Model -> Double -> Double -> Int -> [(Double, Double)]
-linePoints (Model w b) xmin xmax n =
-  let step = (xmax - xmin) / fromIntegral (n-1)
-  in [ (x, b + (w V.! 0) * x) | i <- [0..n-1], let x = xmin + step * fromIntegral i ]
+scatterDataset :: Dataset -> Plot
+scatterDataset dataset =
+  Scatter
+    [ (x V.! 0, y)
+    | (x, y) <- V.toList dataset
+    ]
 
--- Convert MSE history to points
-msePoints :: MSE -> [(Double, Double)]
-msePoints (HistoryMSE errs) = zip [1..] errs
-msePoints (ScalarMSE e)     = [(1, e)]
+------------------------------------------------------------
+-- Model → Regression line
+------------------------------------------------------------
 
--- Render multiple plots as ASCII
+regressionLine :: Model
+  -> Double   -- xmin
+  -> Double   -- xmax
+  -> Int      -- number of points
+  -> Plot
+regressionLine model xmin xmax n =
+  let step = (xmax - xmin) / fromIntegral (n - 1)
+      pts =
+        [ let x = xmin + step * fromIntegral i
+          in (x, predict model (V.singleton x))
+        | i <- [0 .. n-1]
+        ]
+  in Line pts
+
+------------------------------------------------------------
+-- MSE → Curve
+------------------------------------------------------------
+
+mseCurve :: MSE -> Plot
+mseCurve (MSE es) =
+  Scatter $ zip [1..] es
+
+------------------------------------------------------------
+-- ASCII renderer
+------------------------------------------------------------
+
 renderASCII :: Int -> Int -> [Plot] -> String
 renderASCII width height plots =
+
   let points = concatMap extract plots
-      xs = map fst points
-      ys = map snd points
+
+      xs = map (\(x,_,_) -> x) points
+      ys = map (\(_,y,_) -> y) points
+
       xmin = minimum xs
-      xmax = maximum xs
+      xmax = maximum xs 
       ymin = minimum ys
       ymax = maximum ys
 
-      scaleX x = round $ (x - xmin) / (xmax - xmin) * fromIntegral (width - 1)
-      scaleY y = round $ (y - ymin) / (ymax - ymin) * fromIntegral (height - 1)
+      scaleX x =
+        round $ (x - xmin) / (xmax - xmin) * fromIntegral (width - 1)
 
-      -- Initialize empty grid
-      grid = replicate height (replicate width ' ')
+      scaleY y =
+        round $ (y - ymin) / (ymax - ymin) * fromIntegral (height - 1)
 
-      -- Place points on grid
-      grid' = placePoints grid (map (\(x,y) -> (scaleX x, scaleY y)) points)
-  in unlines $ reverse grid'  -- Reverse so row 0 is at the bottom
+      coords =
+        [ (scaleX x, scaleY y, c)
+        | (x, y, c) <- points
+        ]
 
--- Flatten Plot to points
-extract :: Plot -> [(Double, Double)]
-extract (Scatter ps) = ps
-extract (Line ps)    = ps
+      emptyGrid =
+        replicate height (replicate width ' ')
 
--- Place points onto a character grid
-placePoints :: [[Char]] -> [(Int, Int)] -> [[Char]]
+      gridWithPoints =
+        placePoints emptyGrid coords
+  in unlines (reverse gridWithPoints)
+
+------------------------------------------------------------
+-- Helpers
+------------------------------------------------------------
+
+extract :: Plot -> [(Double, Double, Char)]
+extract (Scatter ps) = addChar '*' ps
+extract (Line ps)    = addChar '-' ps
+
+addChar :: Char -> [(Double, Double)] -> [(Double, Double, Char)]
+addChar c = map (\(x,y) -> (x,y,c))
+
+placePoints :: [[Char]] -> [(Int, Int, Char)] -> [[Char]]
 placePoints grid points =
-  [ [ if (x, y') `elem` points then '*' else c
-    | (x, c) <- zip [0..] row ]
-  | (y', row) <- zip [0..] grid ]
+  [ [ case lookupChar x y of 
+        Just ch -> ch 
+        Nothing -> c 
+      | (x, c) <- zip [0..] row ]
+  | (y, row) <- zip [0..] grid 
+  ]
+  where
+    lookupChar x y =
+      case [ch | (px,py,ch) <- points, px == x, py == y] of
+        (ch:_) -> Just ch 
+        []     -> Nothing
+  
+data Bounds = Bounds
+  { xmin :: Double
+  , xmax :: Double
+  , ymin :: Double
+  , ymax :: Double
+  }
+
+boundsFromPlots :: [Plot] -> Bounds
+boundsFromPlots plots =
+  let pts = concatMap plotPoints plots
+      xs  = map fst pts
+      ys  = map snd pts
+  in Bounds
+      (minimum xs)
+      (maximum xs)
+      (minimum ys)
+      (maximum ys)
