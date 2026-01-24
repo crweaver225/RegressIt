@@ -1,0 +1,38 @@
+# ===== Haskell / Cabal =====
+dist/
+dist-newstyle/
+.cabal-sandbox/
+cabal.sandbox.config
+
+# GHC artifacts
+*.hi
+*.o
+*.dyn_o
+*.dyn_hi
+*.hie
+
+# Profiling & coverage
+*.prof
+*.hp
+*.eventlog
+*.tix
+
+# Stack (if ever used)
+.stack-work/
+
+# ===== macOS =====
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# ===== Editors =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== Logs =====
+*.log
+
