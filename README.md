@@ -1,6 +1,5 @@
+# Linear Regression in Haskell
 <img width="609" height="444" alt="Screenshot 2026-01-24 at 2 01 21 PM" src="https://github.com/user-attachments/assets/e27fc9be-c0c4-418c-a602-f72c02eaca56" />
-
-##Linear Regression in Haskell
 Train a linear regression model to fit a datatset. Uses gradient descent.
 ```Haskell
 (model, mse) = SLR.trainLinear dataset 25 0.001
