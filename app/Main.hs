@@ -14,30 +14,28 @@ generateHardcodedDataset = V.fromList
 generateLinearDataset :: Int -> SLR.Dataset
 generateLinearDataset n =
   V.fromList
-    [ let x1 = fromIntegral i
-          x2 = 2 * x1
-          y  = 0.5 * x1 + 0.25 * x2
-      in (V.fromList [x1, x2], y)
+    [ let x1 = 2 * fromIntegral i
+          y  = 0.5 * x1 + 0.25 * x1
+      in (V.fromList [x1], y)
     | i <- [1..n]
     ]
-
 
 main :: IO ()
 main = do
 
-    let dataset = generateLinearDataset 5
+    let dataset = generateLinearDataset 10
         (model, mse) = SLR.trainLinear dataset 25 0.001
 
     mapM_ (\(i, e) -> putStrLn $ show i ++ ": " ++ show e)
         (zip [1 :: Int ..] (SLR.err mse))
-    
+
     print model
 
     -- Create ASCII plot for dataset + regression line
     putStrLn "\nRegression plot:"
     let scatter = Viz.scatterDataset dataset
-        line    = Viz.regressionLine model 0 10 25
-    putStrLn $ Viz.renderASCII 60 20 [scatter, line]
+        line    = Viz.regressionLine model 0 20 50
+    putStrLn $ Viz.renderASCII 50 10 [scatter, line]
 
     putStrLn "\nMSE curve:"
     putStrLn $ Viz.renderASCII 60 15 [Viz.mseCurve mse]

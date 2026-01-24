@@ -115,20 +115,3 @@ placePoints grid points =
         (ch:_) -> Just ch 
         []     -> Nothing
   
-data Bounds = Bounds
-  { xmin :: Double
-  , xmax :: Double
-  , ymin :: Double
-  , ymax :: Double
-  }
-
-boundsFromPlots :: [Plot] -> Bounds
-boundsFromPlots plots =
-  let pts = concatMap plotPoints plots
-      xs  = map fst pts
-      ys  = map snd pts
-  in Bounds
-      (minimum xs)
-      (maximum xs)
-      (minimum ys)
-      (maximum ys)
